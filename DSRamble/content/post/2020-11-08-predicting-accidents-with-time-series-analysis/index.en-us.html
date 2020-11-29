@@ -1,0 +1,376 @@
+---
+title: Predicting Accidents with Time Series Analysis
+author: David Timewell
+date: '2020-11-08'
+slug: index.en-us
+categories:
+  - R
+tags:
+  - Projects
+  - Assignments
+keywords:
+  - tech
+thumbnailImage: "img/time.jpg"
+thumbnailImagePosition: left  
+---
+
+<link href="/rmarkdown-libs/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/anchor-sections/anchor-sections.js"></script>
+
+
+<p>A look into time series analysis using QLD road accident data.</p>
+<!--more-->
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>The Queensland government estimates that the cost of fatalities and hospitalisations for 2014 alone is estimated at over $5 billion (Safer Roads, Safer Queensland: Queensland’s Road Safety Strategy 2015-21,2019). In a recent report the estimated cost for 2018 was also put at $5 billion. With 15 percent of hospital admissions attributed to transport crashes according to Queensland Health data (Big Data to Crunch the Numbers on Road Safety, n.d.).
+The costs of one accident are many and the resulting effect on the families and the community can be devastating Fig.0.</p>
+<div class="figure">
+<img src="data/Cost_of_one_crash.png" alt="Fig.0 (Cost of one Accident)" width="100%" height="100%" />
+<p class="caption">
+(#fig:add_picture2)Fig.0 (Cost of one Accident)
+</p>
+</div>
+<p>Given the huge costs and devastating impact of road accidents, the vision for the future of the Queensland government is to reduce accident fatalities and hospitilisations to zero. Although the vision is to reduce accidents to zero, some of the goals set out in the Queensland Road Safety strategy 2015-21 is to :</p>
+<ul>
+<li>Reduce fatalities from 303 (average 2008-2010) to fewer than 200 by 2020.</li>
+<li>Reduce hospitalised casualties from 6,670 (average 2008-2010) to 4,669 or fewer by 2020.</li>
+</ul>
+</div>
+<div id="background" class="section level1">
+<h1>Background</h1>
+<p>For the initial analysis tasks our group decided to use data from the Queensland department of transport and main roads to investigate motorcycle crash statistics.
+In the initial presentation for motorcycle accidents there was a declining trend in fatalities but a slightly increasing trend in hospitalisations from 2017.</p>
+<p>The goal of this paper is to extend the analysis to all road users with focus being on fatalities, as this has traditionally being the main focus. Time series analysis will be used to forecast fatalities and get an idea of how the government is tracking to the proposed goal of 200 or fewer fatalities by 2020.</p>
+</div>
+<div id="proposed-question-for-this-assignment" class="section level1">
+<h1>Proposed question for this assignment</h1>
+<p>The question for this assignment will be how well the Queensland government is tracking toward reducing fatalities to zero in the long term, and in the short term will
+the goal of fewer than 200 fatalities by 2020 be met.</p>
+</div>
+<div id="data-and-methodology" class="section level1">
+<h1>Data and Methodology</h1>
+<p>The data selected for analysis is the same dataset used for all previous assignments but this time not limited to just motorcycle road users.
+As stated in the background, the focus will be on fatalities. The data for this assignment has been converted to a time series object.</p>
+<p>The general methodology used will be :</p>
+<ul>
+<li>Exploratory analysis of the time series data. This will help to identify trends, seasonality and cyclic behaviours</li>
+<li>Choosing and fitting models.</li>
+<li>Evaluating fit with train and test sets, cross validation and residual diagnostics.</li>
+<li>Forecasting using the model with the best fit.</li>
+</ul>
+<div id="exploratory-analysis" class="section level3">
+<h3>Exploratory Analysis</h3>
+<p>For time series analysis we have enough data as our data set ranges from 2001 - 2018.</p>
+<p>The first characteristics for a time series dataset we will be looking at are :</p>
+<ul>
+<li><p>Trend : long term increase or decrease in the data</p></li>
+<li><p>Seasonality : Regular pattern in the time series related to the calendar. examples are quarter, month or day of week.</p></li>
+<li><p>Cyclic : Rises and falls that are not of a fixed period. This could be patterns exhibited over many years.</p></li>
+</ul>
+<p>From an initial plot of the time series data Fig.1, we see that the general trend does appear to be downward. There also appears to be some seasonality.</p>
+<div class="figure"><span id="fig:unnamed-chunk-3"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-3-1.png" alt="Fig.1 (Plot of timeseries)" width="672" />
+<p class="caption">
+Figure 1: Fig.1 (Plot of timeseries)
+</p>
+</div>
+<p>Decomposing the timeseries into it’s individual elements, patterns in the timeseries become more clear.
+Looking at the trend in Fig.2 , there have been significant drops since 2006. From 2015 the general trend may be creeping up.
+By decomposing the timeseries it also allows seasonality to be seen more clearly. Looking at Fig.2 there seems to be a seasonal pattern.</p>
+<div class="figure"><span id="fig:unnamed-chunk-4"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-4-1.png" alt="Fig.2 (Decomposition of timeseries)" width="672" />
+<p class="caption">
+Figure 2: Fig.2 (Decomposition of timeseries)
+</p>
+</div>
+<p>Running an autocorrelation plot against the timeseries data Fig.3, a “scalloped” pattern can be seen. This “scalloped” pattern can be an indication of seasonality or cyclic behaviour.
+Seasonality shows up as spikes and because the timeseries data is monthly a large spike at lag 12 is observed.</p>
+<div class="figure"><span id="fig:unnamed-chunk-5"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-5-1.png" alt="Fig.3 (ACF plot of timeseries)" width="672" />
+<p class="caption">
+Figure 3: Fig.3 (ACF plot of timeseries)
+</p>
+</div>
+<p>The partial auto correlation Fig.4 also shows a spike at lag 12 among others.</p>
+<div class="figure"><span id="fig:unnamed-chunk-6"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-6-1.png" alt="Fig.4 (PACF of timeseries)" width="672" />
+<p class="caption">
+Figure 4: Fig.4 (PACF of timeseries)
+</p>
+</div>
+<p>The subseries plot in Fig.5 allows the seasonality to be seen more clearly and shows seasonality changes over time. Investigations of seasonality in Fig.5 show August to be the highest month for fatalities and February to be the lowest.</p>
+<div class="figure"><span id="fig:unnamed-chunk-7"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-7-1.png" alt="Fig.5 (Subseries plot of timeseries)" width="672" />
+<p class="caption">
+Figure 5: Fig.5 (Subseries plot of timeseries)
+</p>
+</div>
+</div>
+<div id="choosing-and-fitting-models" class="section level3">
+<h3>Choosing and fitting models</h3>
+<div id="arima-models" class="section level4">
+<h4>ARIMA models</h4>
+<p>ARIMA (Auto-Regressive Integrated Moving Average) models describe autocorellations in data.
+ARIMA models will be the one of modelling technique that will be used in this analysis.
+ARIMA models and exponential smoothing models are the two most widely used approaches for time series forecasting.</p>
+<p>ARIMA models are characterised by parameters p,d and q.</p>
+<ul>
+<li><p>p represents the number of AR(auto regressive) components. 0 if there is no relationship between adjacent observations.</p></li>
+<li><p>d is the degree of differencing that is applied to the data</p></li>
+<li><p>q represents the number of MA(moving average) components.</p></li>
+</ul>
+<p>Where we have a seasonal element in our time series the notation is extended to include :
+ARIMA (p,d,q)(P,D,Q) where P,D and Q are parameters for seasonality.</p>
+</div>
+<div id="stationary-data" class="section level4">
+<h4>Stationary data</h4>
+<p>One requirement for ARMA models is that time series data be stationary meaning the mean, variance and covariance do not vary with time.
+ARIMA models address this with the integration component being the “I” in ARIMA. The “I” addresses the degree of differencing needed to make the data stationary.
+By looking at the data plotted from the timeseries in Fig.1 , it would suggest that the mean is not constant and the variability around the mean is not stable.
+Looking at the ACF plot in Fig.3 and PACF plot in Fig.6, the lags do not decrease fast to zero and there are many significant lags.</p>
+<p>To confirm the initial assessments that the time series data are non-stationary the KPSS (Kwiatkowski-Phillips-Schmidt-Shin) test is run.
+For this test the results of the test exceeds the critical value of 1% and is not stationary as can be seen in Fig.7.</p>
+<pre><code>## 
+## ####################### 
+## # KPSS Unit Root Test # 
+## ####################### 
+## 
+## Test is of type: mu with 4 lags. 
+## 
+## Value of test-statistic is: 2.1694 
+## 
+## Critical value for a significance level of: 
+##                 10pct  5pct 2.5pct  1pct
+## critical values 0.347 0.463  0.574 0.739</code></pre>
+<p>Fig.7 (KPSS test of timeseries)</p>
+<p>We can remove the non-stationary characteristic of the time series by differencing the data. The number of times we need to difference the data determines the value d in our ARIMA model.
+Differencing simply subtracts the value from an earlier observation in the time series from a later observation.
+Fig.8 shows the KPSS (Kwiatkowski-Phillips-Schmidt-Shin) test after differencing.
+We now have a value of 0.015 which is under the critical value of 1% and can conclude the time series data is now stationary.</p>
+<pre><code>## 
+## ####################### 
+## # KPSS Unit Root Test # 
+## ####################### 
+## 
+## Test is of type: mu with 4 lags. 
+## 
+## Value of test-statistic is: 0.015 
+## 
+## Critical value for a significance level of: 
+##                 10pct  5pct 2.5pct  1pct
+## critical values 0.347 0.463  0.574 0.739</code></pre>
+<p>Fig.8 (KPSS test of differenced timeseries)</p>
+<p>Plotting the stationary data Fig.10, it can be seen that the series is stationary around the mean of zero. So for the purpose of this analysis the time series data will only be differenced once.</p>
+<div class="figure"><span id="fig:unnamed-chunk-10"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-10-1.png" alt="Fig.10 (Plot of differenced timeseries)" width="672" />
+<p class="caption">
+Figure 6: Fig.10 (Plot of differenced timeseries)
+</p>
+</div>
+<p>Models can be identified by patterns in their PACFs (partial autocorrelation) and ACFs (autocorrelation) plots.
+A seasonal autoregressive component tends to produce a decaying ACF function and spikes on the PACF while a
+moving average component tends to produce the reverse pattern.</p>
+<p>looking at the ACF plot Fig.12, of the differenced data we see a significant initial negative spike at lag 1 which decays quickly and no significant spikes after.
+The above observations are commonly associated with an MA process. The number of MA terms would be 1 as that is the lag at which the cut off occurs.</p>
+<div class="figure"><span id="fig:unnamed-chunk-11"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-11-1.png" alt="Fig.12 (ACF plot of differenced timeseries)" width="672" />
+<p class="caption">
+Figure 7: Fig.12 (ACF plot of differenced timeseries)
+</p>
+</div>
+<p>The plot of the PACF Fig.13, is more difficult to interpret. There is an initial cut off after lag 4 but significant spikes after as it decays to zero. This indicates that these lags have a significant impact on the current time series data.
+The additional spikes may be due to the seasonality in the data. The description above of the seasonal auto regressive component looks to fit some of the patterns seen in the ACF and PACF plots.</p>
+<div class="figure"><span id="fig:unnamed-chunk-12"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-12-1.png" alt="Fig.13 (PACF plot of differenced timeseries)" width="672" />
+<p class="caption">
+Figure 8: Fig.13 (PACF plot of differenced timeseries)
+</p>
+</div>
+<p>Given the difficulty in interpreting the PACF, auto.arima was used to select the best order of the MA and AR terms.<br />
+The auto arima package tests different combinations of p,d and q terms and chooses the model with the lowest AICc score.
+In this instance the best model chosen from the package was an ARIMA(0,1,1)(1,0,0)[12] with an AICc score of 1349.23 as can be seen in Fig.14.
+The [12] indicates the frequency of the model being monthly.
+For the ARIMA model chosen by auto.arima the data is differenced once as we knew it would be given our preceding investigations into making the data stationary. An MA term of order 1 is selected for the non-seasonal part of the model. This would likely coincide with the interpretation of the ACF plot Fig.12. For the season AR term an order of 1 is selected.</p>
+<pre><code>## Series: y_f 
+## ARIMA(0,1,1)(1,0,0)[12] 
+## 
+## Coefficients:
+##           ma1    sar1
+##       -0.9152  0.1670
+## s.e.   0.0335  0.0704
+## 
+## sigma^2 estimated as 30.24:  log likelihood=-671.56
+## AIC=1349.11   AICc=1349.23   BIC=1359.22</code></pre>
+<p>Fig.14 (auto.arima output )</p>
+</div>
+<div id="exponential-smoothing-methods" class="section level4">
+<h4>Exponential Smoothing Methods</h4>
+<p>Exponential smoothing methods consist of forecast based on previous periods data with exponentially decaying influence the older they become. So older past observations are essentially given less weight.</p>
+<p>The notation for ETS (error,trend,seasonality) used in this analysis are as follows:</p>
+<ul>
+<li>Trend = {N,A,Ad} Ad = Additive damped.</li>
+<li>Seasonal = {N,A,M}</li>
+<li>Error = {A,M}</li>
+</ul>
+<p>where N is None, A is additive and M is Multiplicative.</p>
+<p>For the time series data in this analysis an ETS(A,N,A) model is chosen Fig.15. This is chosen base on the lowest AICc score.</p>
+<pre><code>## ETS(A,N,A) 
+## 
+## Call:
+##  ets(y = y_f) 
+## 
+##   Smoothing parameters:
+##     alpha = 0.0927 
+##     gamma = 1e-04 
+## 
+##   Initial states:
+##     l = 26.7211 
+##     s = 0.8976 1.1574 -0.0727 1.9135 3.1771 0.8305
+##            0.714 0.7434 -0.2087 -1.6223 -5.2492 -2.2805
+## 
+##   sigma:  5.3198
+## 
+##      AIC     AICc      BIC 
+## 1898.647 1901.047 1949.276</code></pre>
+<p>Fig.15 (ets output)</p>
+</div>
+</div>
+<div id="evaluating-fit" class="section level3">
+<h3>Evaluating fit</h3>
+<div id="residual-diagnostics" class="section level4">
+<h4>Residual diagnostics</h4>
+<p>Running the residual diagnostics for the Arima model Fig.16 , the results of the Ljung-Box test return a p-value is 0.8912 indicating that the residuals are analogous to white noise.
+This is further verified by out ACF plot that shows no significant spikes.
+Given the residuals are white noise we can further say that :</p>
+<ul>
+<li><p>The residuals are uncorrelated, they have zero mean and also have constant variance.</p></li>
+<li><p>Going one step further the residuals should be normally distributed. So in fact they should represent Gaussian white noise.
+In Fig.16 looking at the histogram the residuals are more or less normally distributed.</p></li>
+</ul>
+<p>Based on the above observations the chosen model produces forecasts that seem to capture all available information.</p>
+<div class="figure"><span id="fig:unnamed-chunk-15"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-15-1.png" alt="Fig.16 (Llung Box and residual diagnostics ARIMA)" width="672" />
+<p class="caption">
+Figure 9: Fig.16 (Llung Box and residual diagnostics ARIMA)
+</p>
+</div>
+<pre><code>## 
+##  Ljung-Box test
+## 
+## data:  Residuals from ARIMA(0,1,1)(1,0,0)[12]
+## Q* = 14.281, df = 22, p-value = 0.8912
+## 
+## Model df: 2.   Total lags used: 24</code></pre>
+<p>The same is done for the ETS model Fig 17. The ACF of the residuals are close to but not significant. The Llung-Box test returns a p-value is 0.072 which suggests as with the ARIMA model the residuals are analogous to white noise.</p>
+<div class="figure"><span id="fig:unnamed-chunk-16"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-16-1.png" alt="Fig.17 (Llung Box and residual diagnostics ETS)" width="672" />
+<p class="caption">
+Figure 10: Fig.17 (Llung Box and residual diagnostics ETS)
+</p>
+</div>
+<pre><code>## 
+##  Ljung-Box test
+## 
+## data:  Residuals from ETS(A,N,A)
+## Q* = 17.073, df = 10, p-value = 0.07277
+## 
+## Model df: 14.   Total lags used: 24</code></pre>
+</div>
+</div>
+<div id="further-model-evaluation-using-arima-ets-and-snaive." class="section level3">
+<h3>Further model evaluation using ARIMA, ETS and SNAIVE.</h3>
+<p>In addition to the ARIMA and ETS() models, a Seasonal Naive model was also evaluated in an attempt to choose the best model for the task. The Seasonal Naive model
+was also used as it is able to account for seasonality.
+Before comparing model accuracy the timeseries data was split into a train and a test set. With the test set representing the last 24 months of data for the time series.
+Assessment of model accuracy was judged by the lowest MAPE and RMSE scores. At this point we cannot use AICc scores to determine the best model. AICCc scores are used to assess models of the same type, such as different ARIMA models with same degree of differencing, but cannot be used for different types of models.</p>
+<p>After testing the model accuracy, the ARIMA model has the lowest MAPE at 25.94 and RMSE at 5.36 on the test data set. Fig.18.
+Accuracy of the other models can be seen in Fig.19 and Fig.20.</p>
+<pre><code>##                      ME     RMSE      MAE        MPE     MAPE      MASE
+## Training set -0.1119171 5.440956 4.355574  -5.609159 19.28051 0.7739422
+## Test set     -0.7717655 5.368211 4.526113 -11.995156 25.94813 0.8042451
+##                    ACF1 Theil&#39;s U
+## Training set 0.02568105        NA
+## Test set     0.09061207 0.6900075</code></pre>
+<p>Fig.18 (ARIMA : Model accuracy.)</p>
+<pre><code>##                      ME     RMSE      MAE       MPE     MAPE      MASE
+## Training set -0.3119354 5.057609 4.070404 -5.632001 17.83410 0.7232703
+## Test set     -0.2531717 5.759803 4.998555 -9.475590 28.35429 0.8881934
+##                     ACF1 Theil&#39;s U
+## Training set -0.06647706        NA
+## Test set      0.03705043 0.7387411</code></pre>
+<p>Fig.19 (ETS : Model accuracy.)</p>
+<pre><code>##                      ME     RMSE      MAE       MPE     MAPE      MASE
+## Training set -0.4055556 7.045487 5.627778 -6.086123 24.24828 1.0000000
+## Test set     -0.4166667 6.278269 5.166667 -8.922193 27.39981 0.9180652
+##                    ACF1 Theil&#39;s U
+## Training set 0.04178890        NA
+## Test set     0.06582168 0.7935601</code></pre>
+<p>Fig.20 (SNAIVE : Model accuracy.)</p>
+<p>This was further confirmed with a time series cross validation (tsCV) of the two strongest models being the ARIMA and ETS.
+The ARIMA model returned a lower MSE score Fig.22. The ETS model MSE is shown in Fig.21.</p>
+<pre><code>## [1] 36.92615</code></pre>
+<p>Fig.21 (MSE of ETS(A,N,A) model)</p>
+<pre><code>## [1] 35.95496</code></pre>
+<p>Fig.22 (MSE of ARIMA(0,1,1)(1,0,0)[12] model)</p>
+</div>
+<div id="forecasting" class="section level3">
+<h3>Forecasting</h3>
+<p>Given the results of the above the ARIMA model will be used for forecasting. For this analysis forecasting will be done 24 months into the future beyond the last date offered in the time series data being December 2018. By going 24 months into the future we can then draw comparisons to the goal of the Queensland government to reduce fatalities to fewer than 200 by 2020.</p>
+<p>The plot of the final forecast is represented in Fig.23 and the table of forecasts predictions in Table 1.
+the point forecast represents the average of the predicted futures output by the model. In the forecast chart this is represented by the blue line.
+The shaded regions are based on the percentiles of the predicted futures. The forecast function represents a darker region being the 80 percent interval and a lighter region
+being the 95% interval. Therefore 95% of the predictions will lie in the 95% portion, where as 80% will be in the 80% portion.
+Given the above we don’t expect the future outcomes to strictly follow the point forecast predictions.
+Also of interest is if both the ARIMA an ETS models are close in accuracy a combination could also be used. One way would be to average the forecasts from both models.</p>
+<div class="figure"><span id="fig:unnamed-chunk-24"></span>
+<img src="/post/2020-11-08-predicting-accidents-with-time-series-analysis/index.en-us_files/figure-html/unnamed-chunk-24-1.png" alt="Fig.23 (Forecast plot)" width="672" />
+<p class="caption">
+Figure 11: Fig.23 (Forecast plot)
+</p>
+</div>
+<pre><code>##          Point Forecast    Lo 80    Hi 80     Lo 95    Hi 95
+## Jan 2019       19.77794 12.73107 26.82482  9.000678 30.55521
+## Feb 2019       20.27885 13.20670 27.35100  9.462932 31.09477
+## Mar 2019       21.94856 14.85122 29.04590 11.094118 32.80300
+## Apr 2019       19.77794 12.65551 26.90038  8.885117 30.67077
+## May 2019       19.44400 12.29656 26.59145  8.512927 30.37507
+## Jun 2019       20.94674 13.77437 28.11910  9.977547 31.91592
+## Jul 2019       21.94856 14.75136 29.14576 10.941387 32.95573
+## Aug 2019       21.44765 14.22569 28.66960 10.402622 32.49267
+## Sep 2019       20.44582 13.19920 27.69244  9.363075 31.52857
+## Oct 2019       18.94309 11.67189 26.21429  7.822744 30.06343
+## Nov 2019       20.11188 12.81618 27.40758  8.954069 31.26970
+## Dec 2019       21.11371 13.79359 28.43383  9.918550 32.30886
+## Jan 2020       20.40875 12.87673 27.94076  8.889520 31.92797
+## Feb 2020       20.49238 12.92817 28.05660  8.923920 32.06085
+## Mar 2020       20.77118 13.17491 28.36745  9.153684 32.38867
+## Apr 2020       20.40875 12.78055 28.03694  8.742433 32.07506
+## May 2020       20.35299 12.69301 28.01297  8.638056 32.06792
+## Jun 2020       20.60390 12.91226 28.29554  8.840551 32.36725
+## Jul 2020       20.77118 13.04801 28.49435  8.959607 32.58275
+## Aug 2020       20.68754 12.93297 28.44211  8.827946 32.54713
+## Sep 2020       20.52026 12.73442 28.30611  8.612841 32.42769
+## Oct 2020       20.26935 12.45236 28.08634  8.314291 32.22441
+## Nov 2020       20.46451 12.61649 28.31252  8.461996 32.46701
+## Dec 2020       20.63178 12.75286 28.51070  8.582009 32.68155</code></pre>
+<p>Table 1 Forecast table</p>
+</div>
+</div>
+<div id="conclusion" class="section level1">
+<h1>Conclusion</h1>
+<p>The question initially posed was how the Queensland government was tracking toward the vision of zero fatalities and more realistically in the short term a drop in fatalities to fewer than 200 by 2020.</p>
+<p>Looking at Table 2, if just taking into account the point forecasts for 2019 and 2020, the fatalities will increase slightly. So based on the point forecast less than 200 fatalities by 2020 will not be acheived. This does, however, represent a significant decrease from 300 between 2008-2010. True values as mentioned earlier will vary around the intervals.</p>
+<div class="figure">
+<img src="data/ForcTable.png" alt="Table 2" width="50%" height="50%" />
+<p class="caption">
+(#fig:add_picture3)Table 2
+</p>
+</div>
+<p>By extending the analysis beyond the initial group assignment, which focused on motorcycles. The analysis presented in this assignment dealt with all road users and allowed the opportunity to get a more complete picture of all fatalities on Queensland roads.</p>
+<div id="citations" class="section level3">
+<h3>Citations</h3>
+<p>Safer Roads, Safer Queensland: Queensland’s Road Safety Strategy 2015-21. (2019). Retrieved October 2020.
+<a href="https://www.tmr.qld.gov.au/-/media/Safety/roadsafety/Strategy-and-action-plans/roadsafetystrategy201521.pdf?la=en" class="uri">https://www.tmr.qld.gov.au/-/media/Safety/roadsafety/Strategy-and-action-plans/roadsafetystrategy201521.pdf?la=en</a></p>
+<p>Big data to crunch the numbers on road safety. (n.d.). Ministerial Media Statements. Retrieved November, 2020, from <a href="https://statements.qld.gov.au/statements/88410#" class="uri">https://statements.qld.gov.au/statements/88410#</a>:~:text=Minister%20for%20Transport%20and%20Main%20Roads&amp;text=%E2%80%9CIn%202018%2C%20the%20economic%20cost,billion%2C%E2%80%9D%20Mr%20Bailey%20said.</p>
+</div>
+</div>

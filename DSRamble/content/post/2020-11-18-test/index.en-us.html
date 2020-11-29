@@ -1,0 +1,348 @@
+<link href="index.en-us_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="index.en-us_files/anchor-sections/anchor-sections.js"></script>
+<script src="index.en-us_files/kePrint/kePrint.js"></script>
+<link href="index.en-us_files/lightable/lightable.css" rel="stylesheet" />
+
+
+<!--more-->
+<div id="intro-to-eda-with-categorical-variables" class="section level2">
+<h2>Intro to EDA with Categorical variables</h2>
+<p>Below is an introduction to EDA with categorical variables. This should give a decent starting point when you want to start
+your analysis.</p>
+<p>If you knowledge of ggplot needs some work then this book is really good : <a href="https://r-graphics.org/" class="uri">https://r-graphics.org/</a></p>
+<pre><code>## -- Attaching packages --------------------------------------- tidyverse 1.3.0 --</code></pre>
+<pre><code>## v ggplot2 3.3.2     v purrr   0.3.4
+## v tibble  3.0.4     v dplyr   1.0.2
+## v tidyr   1.1.2     v stringr 1.4.0
+## v readr   1.4.0     v forcats 0.5.0</code></pre>
+<pre><code>## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
+<pre><code>## 
+## Attaching package: &#39;kableExtra&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     group_rows</code></pre>
+<p>We are going to be using crash data from the QLD government.
+So lets go ahead and grab it.</p>
+<pre class="r"><code>crash_data &lt;- read_csv(&quot;http://www.tmr.qld.gov.au/~/media/aboutus/corpinfo/Open%20data/crash/locations.csv&quot;)</code></pre>
+<pre><code>## 
+## -- Column specification --------------------------------------------------------
+## cols(
+##   .default = col_character(),
+##   Crash_Ref_Number = col_double(),
+##   Crash_Year = col_double(),
+##   Crash_Hour = col_double(),
+##   Crash_Longitude_GDA94 = col_double(),
+##   Crash_Latitude_GDA94 = col_double(),
+##   Crash_DCA_Code = col_double(),
+##   Count_Casualty_Fatality = col_double(),
+##   Count_Casualty_Hospitalised = col_double(),
+##   Count_Casualty_MedicallyTreated = col_double(),
+##   Count_Casualty_MinorInjury = col_double(),
+##   Count_Casualty_Total = col_double(),
+##   Count_Unit_Car = col_double(),
+##   Count_Unit_Motorcycle_Moped = col_double(),
+##   Count_Unit_Truck = col_double(),
+##   Count_Unit_Bus = col_double(),
+##   Count_Unit_Bicycle = col_double(),
+##   Count_Unit_Pedestrian = col_double(),
+##   Count_Unit_Other = col_double()
+## )
+## i Use `spec()` for the full column specifications.</code></pre>
+<p>I am going to trim this down to investigate speed zone and crash severity as my categorical variables. And I am only interested in Motorcycle accidents.</p>
+<pre class="r"><code>crash_data_eda &lt;- crash_data %&gt;% filter(Count_Unit_Motorcycle_Moped &gt; 0 )  %&gt;% select(Crash_Severity,Crash_Speed_Limit) 
+
+crash_data_eda &lt;- na.omit(crash_data_eda)</code></pre>
+<p>Take a look at the structure of the data.</p>
+<pre class="r"><code>glimpse(crash_data_eda)</code></pre>
+<pre><code>## Rows: 29,913
+## Columns: 2
+## $ Crash_Severity    &lt;chr&gt; &quot;Property damage only&quot;, &quot;Medical treatment&quot;, &quot;Hos...
+## $ Crash_Speed_Limit &lt;chr&gt; &quot;70 km/h&quot;, &quot;60 km/h&quot;, &quot;60 km/h&quot;, &quot;60 km/h&quot;, &quot;0 - ...</code></pre>
+<p>Lets convert the variables to factors.</p>
+<pre class="r"><code>crash_data_eda$Crash_Severity &lt;- as.factor(crash_data_eda$Crash_Severity) 
+crash_data_eda$Crash_Speed_Limit &lt;- as.factor(crash_data_eda$Crash_Speed_Limit) </code></pre>
+<p>Lets start by looking at the variables by themselves. We will start with the speed zone.
+Looks like 60km/h zone is where most accidents occur.</p>
+<pre class="r"><code>ggplot(crash_data_eda,aes(x=Crash_Speed_Limit)) +
+  geom_bar()</code></pre>
+<p><img src="index.en-us_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>Now let’s pretty it up and make it more meaningful by including titles , labels ect.
+I wil also reorder the factor.</p>
+<pre class="r"><code>crash_data_eda$Crash_Speed_Limit &lt;- factor(crash_data_eda$Crash_Speed_Limit,levels = c(&quot;60 km/h&quot;,&quot;0 - 50 km/h&quot;,&quot;100 - 110 km/h&quot;,&quot;80 - 90 km/h&quot;,&quot;70 km/h&quot;))
+
+ggplot(crash_data_eda,aes(x=Crash_Speed_Limit)) +
+  geom_bar(colour=&quot;black&quot;,fill=&quot;#CCEEFF&quot;) +
+   xlab(&quot;Speed Zone&quot;) + 
+    ylab(&quot;Number of Accidents&quot;) +
+     geom_text(aes(label = ..count..), stat = &quot;count&quot;, vjust = 1.5,
+            colour = &quot;black&quot;) +
+       ggtitle(&quot;Number of Motorcycle Accidents by Speed Zone&quot;,&quot;(2001 - 2018)&quot;) +
+         theme_bw() </code></pre>
+<p><img src="index.en-us_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>We can also look at the counts in a table.</p>
+<pre class="r"><code>options(scipen = 999, digits = 3)   #Simplify display format
+
+ 
+tab_cnt &lt;- table(crash_data_eda$Crash_Speed_Limit) 
+tab_cnt      </code></pre>
+<pre><code>## 
+##        60 km/h    0 - 50 km/h 100 - 110 km/h   80 - 90 km/h        70 km/h 
+##          15827           5488           4025           2952           1621</code></pre>
+<p>And now get a table of proportions and save into props to use in the next section</p>
+<pre class="r"><code>(props &lt;- prop.table(tab_cnt))</code></pre>
+<pre><code>## 
+##        60 km/h    0 - 50 km/h 100 - 110 km/h   80 - 90 km/h        70 km/h 
+##         0.5291         0.1835         0.1346         0.0987         0.0542</code></pre>
+<p>Lets plot this percent of total accidents now for each speed zone.</p>
+<pre class="r"><code>as.data.frame(props) %&gt;% rename(&quot;Speed Zone&quot;=Var1,&quot;Percent&quot;=Freq) %&gt;% mutate(percent_lab = paste(as.character(round(Percent*100)),&quot;%&quot;)) %&gt;% ggplot(aes(x=`Speed Zone`,y=Percent)) +
+  geom_bar(stat=&#39;identity&#39;,colour=&quot;black&quot;,fill=&quot;#CCEEFF&quot;) +
+   scale_y_continuous(labels = scales::percent) +
+    theme_bw() +
+      geom_text(aes(label = percent_lab,vjust = 1.5 )) +
+           ggtitle(&quot;Proportion of Motorcycle Accidents by Speed Zone&quot;,&quot;(2001 - 2018)&quot;)</code></pre>
+<p><img src="index.en-us_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>You can try the same with the other variable, but lets now start looking at the combination of Crash_Speed_Limit and Crash_Severity.</p>
+<p>Again we can use the table to take a look at counts.</p>
+<pre class="r"><code>(tab_cnt &lt;- table(crash_data_eda$Crash_Speed_Limit, crash_data_eda$Crash_Severity))</code></pre>
+<pre><code>##                 
+##                  Fatal Hospitalisation Medical treatment Minor injury
+##   60 km/h          330            8293              5025         1988
+##   0 - 50 km/h      112            2904              1707          709
+##   100 - 110 km/h   300            2622               817          250
+##   80 - 90 km/h     180            1831               681          236
+##   70 km/h           59             925               457          168
+##                 
+##                  Property damage only
+##   60 km/h                         191
+##   0 - 50 km/h                      56
+##   100 - 110 km/h                   36
+##   80 - 90 km/h                     24
+##   70 km/h                          12</code></pre>
+<p>I am going to trim down my data set to Hospitalisation vs Fatal as these make up the greatest proportion.</p>
+<pre class="r"><code>crash_data_eda &lt;- crash_data_eda %&gt;% filter(!Crash_Severity %in%  c(&quot;Property damage only&quot;,&quot;Minor injury&quot;,&quot;Medical treatment&quot;)) </code></pre>
+<p>If we look at counts again notice the factor levels are still represented but are zero. Note I used kableExtra just to show a different formatting option. There is alot more to the package take a look at :
+<a href="https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html" class="uri">https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html</a></p>
+<pre class="r"><code>(tab_cnt &lt;- table(crash_data_eda$Crash_Speed_Limit, crash_data_eda$Crash_Severity))  %&gt;% kbl() %&gt;%   kable_paper(bootstrap_options = &quot;striped&quot;,full_width = T,position = &quot;float_left&quot;) %&gt;% footnote(general = &quot;Crash frequency by speed zone (2001-2018). &quot;)</code></pre>
+<table class=" lightable-paper" style='font-family: "Arial Narrow", arial, helvetica, sans-serif; float: left; margin-right: 10px;border-bottom: 0;'>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Fatal
+</th>
+<th style="text-align:right;">
+Hospitalisation
+</th>
+<th style="text-align:right;">
+Medical treatment
+</th>
+<th style="text-align:right;">
+Minor injury
+</th>
+<th style="text-align:right;">
+Property damage only
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+60 km/h
+</td>
+<td style="text-align:right;">
+330
+</td>
+<td style="text-align:right;">
+8293
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+0 - 50 km/h
+</td>
+<td style="text-align:right;">
+112
+</td>
+<td style="text-align:right;">
+2904
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+100 - 110 km/h
+</td>
+<td style="text-align:right;">
+300
+</td>
+<td style="text-align:right;">
+2622
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+80 - 90 km/h
+</td>
+<td style="text-align:right;">
+180
+</td>
+<td style="text-align:right;">
+1831
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+70 km/h
+</td>
+<td style="text-align:right;">
+59
+</td>
+<td style="text-align:right;">
+925
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Crash frequency by speed zone (2001-2018).
+</td>
+</tr>
+</tfoot>
+</table>
+<p>We can drop levels to clean things up.</p>
+<pre class="r"><code>crash_data_eda$Crash_Severity &lt;- droplevels(crash_data_eda$Crash_Severity)
+tab_cnt &lt;- table(crash_data_eda$Crash_Speed_Limit, crash_data_eda$Crash_Severity)</code></pre>
+<p>Lets look at proportions</p>
+<pre class="r"><code>(prop.table(tab_cnt)) </code></pre>
+<pre><code>##                 
+##                    Fatal Hospitalisation
+##   60 km/h        0.01880         0.47237
+##   0 - 50 km/h    0.00638         0.16541
+##   100 - 110 km/h 0.01709         0.14935
+##   80 - 90 km/h   0.01025         0.10429
+##   70 km/h        0.00336         0.05269</code></pre>
+<p>If we want proportion by rows (rows sum to 1)</p>
+<pre class="r"><code>(prop.table(tab_cnt,1))</code></pre>
+<pre><code>##                 
+##                   Fatal Hospitalisation
+##   60 km/h        0.0383          0.9617
+##   0 - 50 km/h    0.0371          0.9629
+##   100 - 110 km/h 0.1027          0.8973
+##   80 - 90 km/h   0.0895          0.9105
+##   70 km/h        0.0600          0.9400</code></pre>
+<p>If we want proportion by columns (columns sum to 1). We can also round and mutiply by 100 to make it look more like percents.</p>
+<pre class="r"><code>  round(prop.table(tab_cnt,2) * 100)</code></pre>
+<pre><code>##                 
+##                  Fatal Hospitalisation
+##   60 km/h           34              50
+##   0 - 50 km/h       11              18
+##   100 - 110 km/h    31              16
+##   80 - 90 km/h      18              11
+##   70 km/h            6               6</code></pre>
+<p>Lets plot some of these. And start with plotting counts</p>
+<pre class="r"><code>ggplot(crash_data_eda, aes(x = Crash_Speed_Limit, fill = Crash_Severity)) + 
+  geom_bar(position = &quot;dodge&quot;,colour=&quot;black&quot;) +
+   scale_fill_manual(values = c(&quot;#FFDDDD&quot;,&quot;#CCEEFF&quot;)) +
+     xlab(&quot;Speed Zone&quot;) + 
+       ylab(&quot;Number of Accidents&quot;) +
+          guides(fill=guide_legend(title=NULL)) +
+            ggtitle(&quot;Number of Fatal vs Hospitalisation Motorcycle Accidents by Speed Zone&quot;,&quot;(2001 - 2018)&quot;) +
+              theme_bw() +
+                geom_text(aes(label = ..count..), stat = &quot;count&quot;, vjust = -0.2,hjust= 1,
+                colour = &quot;black&quot;)</code></pre>
+<p><img src="index.en-us_files/figure-html/unnamed-chunk-18-1.png" width="1440" /></p>
+<p>Lets plot the proportions , it looks like 60km and 100-110km zones make up the highest proportion of fatalities and hospitalisations.</p>
+<pre class="r"><code>plot_data_eda &lt;- crash_data_eda %&gt;% group_by(Crash_Severity)  %&gt;% count(Crash_Speed_Limit) %&gt;% mutate(pct= prop.table(n) )  %&gt;% mutate(pct_lab = as.character(round(pct*100))) %&gt;% arrange(Crash_Speed_Limit,desc(pct))
+
+
+
+ggplot(plot_data_eda,aes(x=Crash_Severity,y=pct,fill=Crash_Speed_Limit)) +     
+   geom_col(colour=&quot;black&quot;) +
+     geom_text(position = position_stack(vjust = .5),aes(x=Crash_Severity,y=pct,label=   paste(pct_lab,&quot;%&quot;)   )) +
+     scale_y_continuous(labels = scales::percent) + 
+       scale_fill_brewer(palette = &quot;Pastel1&quot;)   +
+           guides(fill=guide_legend(title=NULL)) +
+             xlab(&quot;Crash Severity Type&quot;) + 
+               ylab(&quot;&quot;) + 
+               ggtitle(&quot;Proportion of Motorcycle Accidents by Speed Zone&quot;,&quot;(2001 - 2018)&quot;) +
+                  theme_bw() </code></pre>
+<p><img src="index.en-us_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<p>Now lets look at the proportion of crash severity in each speed zone.
+Looks like 100-110km has the highest proportion of fatalities. I think speed could be a factor here.</p>
+<pre class="r"><code>plot2_data_eda &lt;- crash_data_eda %&gt;% group_by(Crash_Speed_Limit)  %&gt;% count(Crash_Speed_Limit,Crash_Severity) %&gt;% mutate(pct= prop.table(n) )  %&gt;% mutate(pct_lab = as.character(round(pct*100))) %&gt;% arrange(Crash_Speed_Limit,desc(pct))
+
+
+
+plot2_data_eda$Crash_Speed_Limit &lt;- factor(plot2_data_eda$Crash_Speed_Limit,levels = c(&quot;100 - 110 km/h&quot;,&quot;80 - 90 km/h&quot;,&quot;70 km/h&quot;,&quot;60 km/h&quot;,&quot;0 - 50 km/h&quot;))
+
+ggplot(plot2_data_eda,aes(x=Crash_Speed_Limit,y=pct,fill=Crash_Severity)) +     
+   geom_col(colour=&quot;black&quot;) +
+       scale_fill_manual(values = c(&quot;#FFDDDD&quot;,&quot;#CCEEFF&quot;))   +
+           guides(fill=guide_legend(title=NULL)) +
+         xlab(&quot;Speed Zone&quot;) + 
+           ylab(&quot;&quot;) + 
+               ggtitle(&quot;Proportion of Motorcycle Accidents by Speed Zone&quot;,&quot;(2001 - 2018)&quot;) +
+                  theme_bw() +
+                    geom_text(position = position_stack(vjust = .5),aes(x=Crash_Speed_Limit,y=pct,label=   paste(pct_lab,&quot;%&quot;)   )) + 
+                       scale_y_continuous(labels = scales::percent) </code></pre>
+<p><img src="index.en-us_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
+<p>So there we go, some basic charts to use and tables to investigate categorical variables as a start to getting some insight.
+Also take a look at :
+For a look into contingency tables :
+<a href="https://medium.com/@nhan.tran/contingency-table-55e375a76a8" class="uri">https://medium.com/@nhan.tran/contingency-table-55e375a76a8</a>
+And for Chi Square :
+<a href="https://medium.com/@nhan.tran/the-chi-square-statistic-p-1-37a8eb2f27bb" class="uri">https://medium.com/@nhan.tran/the-chi-square-statistic-p-1-37a8eb2f27bb</a></p>
+</div>

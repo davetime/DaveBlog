@@ -1,0 +1,165 @@
+---
+title: Working with sqldf
+author: David Timewell
+date: '2020-09-23'
+categories:
+  - R
+tags:
+  - EDA
+  - R
+thumbnailImage: "img/SQL.jpg"
+thumbnailImagePosition: left
+slug: index.en-us
+keywords:
+  - tech
+---
+
+<link href="/rmarkdown-libs/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/anchor-sections/anchor-sections.js"></script>
+
+
+<p>If you come from a SQL background like I do. Sqldf allows you to
+query data in R.</p>
+<!--more-->
+<pre class="r"><code>library(sqldf)</code></pre>
+<pre><code>## Loading required package: gsubfn</code></pre>
+<pre><code>## Loading required package: proto</code></pre>
+<pre><code>## Loading required package: RSQLite</code></pre>
+<pre class="r"><code>library(readr)
+library(ggplot2)
+library(dplyr)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>Coming from a SQL background and being able to use SQL to do EDA was deinitely a help in R. Although with using packages such as dplyr you can do much the same thing.
+Sqldf is another great tool in your arsenal.</p>
+</div>
+<div id="some-example-commands" class="section level2">
+<h2>Some example commands</h2>
+<p>sqldf supports the SQLite database backend by default. To check the version run the below.</p>
+<pre class="r"><code>sqldf(&quot;select sqlite_version()&quot;)</code></pre>
+<pre><code>##   sqlite_version()
+## 1           3.33.0</code></pre>
+<p>Get data</p>
+<pre><code>## 
+## -- Column specification --------------------------------------------------------
+## cols(
+##   .default = col_character(),
+##   X1 = col_double(),
+##   Crash_Ref_Number = col_double(),
+##   Crash_Year = col_double(),
+##   Crash_Hour = col_double(),
+##   Crash_Longitude_GDA94 = col_double(),
+##   Crash_Latitude_GDA94 = col_double(),
+##   Count_Casualty_Fatality = col_double(),
+##   Count_Casualty_Hospitalised = col_double(),
+##   Count_Casualty_MedicallyTreated = col_double(),
+##   Count_Casualty_MinorInjury = col_double(),
+##   Count_Casualty_Total = col_double(),
+##   Count_Unit_Car = col_double(),
+##   Count_Unit_Motorcycle_Moped = col_double(),
+##   Count_Unit_Truck = col_double(),
+##   Count_Unit_Bus = col_double(),
+##   Count_Unit_Bicycle = col_double(),
+##   Count_Unit_Pedestrian = col_double(),
+##   Count_Unit_Other = col_double()
+## )
+## i Use `spec()` for the full column specifications.</code></pre>
+<p>sqldf also enables reading in data using read.csv.sql :</p>
+<p>crash &lt;- read.csv.sql(file=“data/crash.csv”,sql=“select * from file”)</p>
+<p>We can start of with a staight select where columns are selected and the data is filtered with the where clause.</p>
+<pre class="r"><code>crash_data_2017 &lt;-  sqldf(&quot;select Count_Unit_Motorcycle_Moped,Crash_Month,Crash_Severity from crash where Crash_Year = 2017&quot; )
+#display just a subset of rows
+sqldf(&quot;select * from crash_data_2017 limit 10&quot;)</code></pre>
+<pre><code>##    Count_Unit_Motorcycle_Moped Crash_Month    Crash_Severity
+## 1                            0     January   Hospitalisation
+## 2                            0     January Medical treatment
+## 3                            0     January Medical treatment
+## 4                            1     January      Minor injury
+## 5                            0     January   Hospitalisation
+## 6                            0     January   Hospitalisation
+## 7                            0     January      Minor injury
+## 8                            0     January Medical treatment
+## 9                            0     January   Hospitalisation
+## 10                           0     January Medical treatment</code></pre>
+<p>Next we can try an aggregate to and group by month.
+AVG, COUNT, MIN, MAX, SUM are all supported.</p>
+<pre class="r"><code>crash_data_sum_month &lt;- sqldf(&quot;select sum(Count_Unit_Motorcycle_Moped) as Num_Crashes,Crash_Month  from crash_data_2017 group by Crash_Month order by 1 DESC  &quot;  )
+
+crash_data_sum_month</code></pre>
+<pre><code>##    Num_Crashes Crash_Month
+## 1          155      August
+## 2          146         May
+## 3          143   September
+## 4          143        July
+## 5          143       April
+## 6          129     October
+## 7          125        June
+## 8          120    December
+## 9          117    February
+## 10         110     January
+## 11         105    November
+## 12         104       March</code></pre>
+<p>Below we use a window function to create a running total.
+For more info take a look at : <a href="https://www.sqlitetutorial.net/sqlite-window-functions/" class="uri">https://www.sqlitetutorial.net/sqlite-window-functions/</a></p>
+<pre class="r"><code>sqldf(&quot;select 
+       Crash_Month
+      ,Num_Crashes
+      ,sum(Num_Crashes) OVER (
+        ORDER BY Crash_Month  -- Note this is window ordering
+        
+        ) AS Running_Total
+      from crash_data_sum_month ORDER by Crash_Month &quot;  )</code></pre>
+<pre><code>##    Crash_Month Num_Crashes Running_Total
+## 1        April         143           143
+## 2       August         155           298
+## 3     December         120           418
+## 4     February         117           535
+## 5      January         110           645
+## 6         July         143           788
+## 7         June         125           913
+## 8        March         104          1017
+## 9          May         146          1163
+## 10    November         105          1268
+## 11     October         129          1397
+## 12   September         143          1540</code></pre>
+<p>We can select the top 5 rows ordered by our sum of crashes descending</p>
+<pre class="r"><code>sqldf(&quot;select * from crash_data_sum_month order by Num_crashes desc Limit 5&quot;) </code></pre>
+<pre><code>##   Num_Crashes Crash_Month
+## 1         155      August
+## 2         146         May
+## 3         143   September
+## 4         143        July
+## 5         143       April</code></pre>
+<p>We can take a look at the distinct values</p>
+<pre class="r"><code>sqldf(&quot;select distinct(crash_severity) from crash_data_2017&quot; )</code></pre>
+<pre><code>##      Crash_Severity
+## 1   Hospitalisation
+## 2 Medical treatment
+## 3      Minor injury
+## 4             Fatal</code></pre>
+<p>We can also concatenate values and cast them</p>
+<pre class="r"><code>sqldf(&quot;select Crash_Month ||&#39;-&#39;|| cast(Crash_Year as text) from crash limit 10&quot; )</code></pre>
+<pre><code>##    Crash_Month ||&#39;-&#39;|| cast(Crash_Year as text)
+## 1                                January-2001.0
+## 2                                January-2001.0
+## 3                                January-2001.0
+## 4                                January-2001.0
+## 5                                January-2001.0
+## 6                                January-2001.0
+## 7                                January-2001.0
+## 8                                January-2001.0
+## 9                                January-2001.0
+## 10                               January-2001.0</code></pre>
+<p>We can also pipe our results out to other packages. In this case ggplot</p>
+<pre class="r"><code>sqldf(&quot;select count(Crash_Severity) Count_Accidents, Crash_Severity from crash_data_2017 group by Crash_Severity &quot;) %&gt;% ggplot(aes(x=Crash_Severity,y=Count_Accidents)) + geom_col()</code></pre>
+<p><img src="/post/2020-11-19-using-sqldf/index.en-us_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>One thing that I have not been able to get to work is delete , update , insert statements. But everthing you can do in select statements in SQLite you can do with sqldf.</p>
+</div>

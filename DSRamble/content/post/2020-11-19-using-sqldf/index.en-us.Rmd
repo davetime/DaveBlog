@@ -1,0 +1,162 @@
+---
+title: Working with sqldf
+author: David Timewell
+date: '2020-09-23'
+categories:
+  - R
+tags:
+  - EDA
+  - R
+thumbnailImage: "img/SQL.jpg"
+thumbnailImagePosition: left
+slug: index.en-us
+keywords:
+  - tech
+---
+
+If you come from a SQL background like I do. Sqldf allows you to 
+query data in R.
+
+<!--more-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+```{r warning=FALSE}
+
+library(sqldf)
+library(readr)
+library(ggplot2)
+library(dplyr)
+
+```
+
+## Introduction
+
+Coming from a SQL background and being able to use SQL to do EDA was deinitely a help in R. Although with using packages such as dplyr you can do much the same thing.
+Sqldf is another great tool in your arsenal.
+
+
+## Some example commands
+
+sqldf supports the SQLite database backend by default. To check the version run the below.
+
+```{r}
+
+sqldf("select sqlite_version()")
+
+
+```
+
+
+
+
+Get data
+
+```{r warning=FALSE,echo=FALSE}
+
+
+#getwd()
+
+crash <- read_csv("../../../static/data/crash_data.csv")
+
+
+
+
+```
+
+sqldf also enables reading in data using read.csv.sql :
+
+crash <- read.csv.sql(file="data/crash.csv",sql="select * from file")
+
+
+
+
+We can start of with a staight select where columns are selected and the data is filtered with the where clause.
+
+```{r}
+
+crash_data_2017 <-  sqldf("select Count_Unit_Motorcycle_Moped,Crash_Month,Crash_Severity from crash where Crash_Year = 2017" )
+#display just a subset of rows
+sqldf("select * from crash_data_2017 limit 10")
+```
+
+Next we can try an aggregate to and group by month.
+AVG, COUNT, MIN, MAX, SUM are all supported.
+
+
+```{r}
+
+crash_data_sum_month <- sqldf("select sum(Count_Unit_Motorcycle_Moped) as Num_Crashes,Crash_Month  from crash_data_2017 group by Crash_Month order by 1 DESC  "  )
+
+crash_data_sum_month
+```
+
+Below we use a window function to create a running total.
+For more info take a look at  : https://www.sqlitetutorial.net/sqlite-window-functions/
+
+
+```{r}
+
+sqldf("select 
+       Crash_Month
+      ,Num_Crashes
+      ,sum(Num_Crashes) OVER (
+        ORDER BY Crash_Month  -- Note this is window ordering
+        
+        ) AS Running_Total
+      from crash_data_sum_month ORDER by Crash_Month "  )
+
+```
+
+We can select the top 5 rows ordered by our sum of crashes descending
+
+
+```{r}
+
+
+sqldf("select * from crash_data_sum_month order by Num_crashes desc Limit 5") 
+
+
+```
+
+
+We can take a look at the distinct values
+
+```{r}
+
+sqldf("select distinct(crash_severity) from crash_data_2017" )
+
+
+```
+
+
+We can also concatenate values and cast them
+
+```{r}
+
+sqldf("select Crash_Month ||'-'|| cast(Crash_Year as text) from crash limit 10" )
+
+
+```
+
+
+We can also pipe our results out to other packages. In this case ggplot
+
+
+```{r}
+
+sqldf("select count(Crash_Severity) Count_Accidents, Crash_Severity from crash_data_2017 group by Crash_Severity ") %>% ggplot(aes(x=Crash_Severity,y=Count_Accidents)) + geom_col()
+
+
+```
+
+
+
+One thing that I have not been able to get to work is delete , update , insert statements. But everthing you can do in select statements in SQLite you can do with sqldf.
+
+
