@@ -13,7 +13,7 @@
 # use grunt task `build` to synchronize assets
 
 #baseURL = "https://example.org/"
-baseURL = "https://https://davidtimewell.netlify.app/"
+baseURL = "https://davidtimewell.netlify.app/"
 languageCode = "en-us"
 defaultContentLanguage = "en-us"
 title = "DS Ramblings"
