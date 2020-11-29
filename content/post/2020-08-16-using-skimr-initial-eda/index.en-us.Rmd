@@ -1,0 +1,217 @@
+---
+title: Using Skimr for Initial EDA
+author: David Timewell
+date: '2020-08-16'
+slug: index.en-us
+categories:
+  - R
+tags:
+  - EDA
+thumbnailImage: "img/skim.jpg"
+thumbnailImagePosition: left  
+
+keywords:
+  - tech
+---
+
+If you are using summary for your summary stastics,consider using skimr.
+This post introduces skimr.
+
+<!--more-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+When beginning to use R one of the first things to do after getting a view of the dataset you are dealing using glimpse() and str() 
+is to start looking at basic descriptive statistics. In the past I used summary extensivly to do this.
+I was going through a tutorial on EDA and linear regression and the author used the skimr package which I thought was a great alternative for quickly getting basic statistics. 
+
+Personally I prefer the structure of the skimr output and how it can be customised for your own needs. 
+
+
+## Why use Skimr
+
+* It has a wider array of statistics than summary
+* Returns a skim_df object which can be used with dplyr pipeline's and tidyverse functions
+* Includes a sparkline if wanted with either a bar or line.
+* Splits data types into separate sections
+* Allows creating your own statistics with skim_with()
+* Built in support for strings, lists and other column classes.
+
+
+## Some examples
+
+
+In the examples to follow I use different tidyverse verbs and different methods of displaying data.
+
+
+### Default output 
+
+Below is the default output from the command when run on a dataset. I will use the mpg dataset.
+Below the output is separated into a summary section and then split by variable types being character and numeric in this instance.
+Note the inclusion of spark lines and some additional statistics not included in summary() function.
+
+
+```{r load package,warning=FALSE,message=FALSE}
+library(tidyverse)
+library(skimr)
+```
+
+``` {r basic_out}
+skim(mpg)
+
+```
+
+
+### What did we return ?
+
+Because skim returns a skim_df object this is pipeable and open to additional manipulation.
+Looking at the structure of the skim_df we can get an orientation of how it's made up.
+I use to_long in the below to get a look at skim_type, skim_variable and stat.
+
+Looking at the below n_missing and complete_rate are base skimmers. The rest are type-base skimmers and we need
+to use the skim_type prefix to refer to the correct column.
+
+
+``` {r structure_of_df}
+
+to_long(skim(mpg,model,hwy)) %>% select(skim_type,skim_variable,stat) %>% arrange(skim_type)
+
+
+
+```
+
+
+### Selecting from skim_df
+
+Below an example of what I mean by selecting type based and base skimmers.
+Note n_missing is our base skimmer and numeric.mean and character.n_unique are our type-based skimmers.
+
+
+``` {r structure_selecting_the_df1}
+
+skim(mpg) %>% select(skim_type,skim_variable,n_missing,numeric.mean,character.n_unique)
+
+```
+
+
+### Selecting specific columns from our data
+
+Only specific columns can be selected if desired. Note there are many ways to do this. We can also use pipe and select.
+
+
+``` {r select}
+
+skim(mpg,hwy)
+
+```
+
+
+### Skim after grouping data
+
+We can use grouping and display the relevant information by group. Note below how pipe and group_by is used.
+
+``` {r select group}
+
+mpg  %>% group_by(drv) %>%  skim(hwy)  
+
+```
+
+
+### Excluding charts
+
+If you dont want the charts.You can use skim_without_charts.
+
+
+``` {r select woc}
+
+skim_without_charts(mpg) %>% filter(skim_variable == "hwy")
+
+```
+
+
+### Select only the sections we want to see using yank
+
+
+If we only want to see the numeric section we can yank that section.  
+
+``` {r select yank}
+
+mpg %>% skim() %>% yank("numeric")
+
+```
+
+
+### Specify your own statistics using skim_with and sfl
+
+
+Using skim_with we can specify our own statistics.For example we can make use of R's stat package.
+Note the default functionality is to append your statistics to the default output statistics that skim returns. By selecting append = FALSE we only return the statistics we specify.
+
+``` {r select myskim}
+
+my_skim <- skim_with(numeric = sfl(iqr = IQR, mad = mad, p99 = ~ quantile(., probs = .99)),
+  append = FALSE)
+
+my_skim(mpg,hwy)
+```
+
+
+We can also exclude statistics we don't want. Note below we set P25 and P75 to NULL. Note we didn't specify append = FALSE so our addition of IQR gets appended to the default output. 
+
+``` {r select myskimremove}
+
+my_skim <- skim_with(numeric = sfl(iqr = IQR, p25 = NULL, p75 = NULL))
+
+
+my_skim(mpg,hwy)
+
+
+```
+
+
+
+
+
+### Keep the original data set with skim_tee
+
+We can also use skim_tee() to return the original data after running skim
+
+``` {r select skim_tee}
+
+mpg_tee <- mpg %>% skim_tee()  
+
+
+```
+
+``` {r select head_tee}
+
+head(mpg_tee) 
+
+
+```
+
+
+## Issues encountered
+
+The one issue I encountered was with the spark lines. If you look at the skim_tee example the sparklines are 
+displayed as <U+2587><U+2586><U+2586><U+2583><U+2581> for example.
+
+Looking at https://cran.r-project.org/web/packages/skimr/readme/README.html the reason given is as follows 
+" This longstanding problem originates in the low-level code for printing dataframes.
+
+while skimr can render the histograms to the console and in RMarkdown documents, it cannot in other circumstances. This includes:
+
+* converting a skimr data frame to a vanilla R data frame, but tibbles render correctly
+* in the context of rendering to a pdf using an engine that does not support utf-8."
+
+In these caes we can use the skim_without_charts as detailed above.
+
+
+
+
+
+<!--more-->

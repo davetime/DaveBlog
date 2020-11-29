@@ -1,0 +1,58 @@
+---
+title: Using R in PowerBI
+author: David Timewell
+date: '2020-09-19'
+slug: index.en-us
+categories:
+  - R
+  - PowerBI
+tags:
+  - PowerBI
+keywords:
+  - tech
+thumbnailImage: "img/RPowerBI.jpg"
+thumbnailImagePosition: left
+
+---
+
+<link href="/rmarkdown-libs/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/anchor-sections/anchor-sections.js"></script>
+
+
+<p>A quick guide to get R scripts running in PowerBI.
+<!--more--></p>
+<div id="introduction" class="section level2">
+<h2>Introduction :</h2>
+<p>This serves as a quick guide to get R scripts running in PowerBI</p>
+<div id="step-1---install-r" class="section level3">
+<h3>Step 1 - Install R</h3>
+<p>R can be installed from the following link : <a href="https://cran.r-project.org/bin/windows/base/" class="uri">https://cran.r-project.org/bin/windows/base/</a>
+Remember where you installed it.</p>
+</div>
+<div id="step-2---setup-r-in-powerbi" class="section level3">
+<h3>Step 2 - Setup R in PowerBI</h3>
+<p>Go to File -&gt; Options and Setting -&gt; Options</p>
+<p><img src="img/PBI_OPTIONS_1.png" /><!-- --></p>
+<p>Select R scripting from the side menu an then input your install path. For the IDE I set mine to RStudio.
+For RStudio install instructions See</p>
+<p><a href="https://www.datacamp.com/community/tutorials/installing-R-windows-mac-ubuntu?utm_source=adwords_ppc&amp;utm_campaignid=898687156&amp;utm_adgroupid=48947256715&amp;utm_device=c&amp;utm_keyword=&amp;utm_matchtype=b&amp;utm_network=g&amp;utm_adpostion=&amp;utm_creative=229765585183&amp;utm_targetid=dsa-429603003980&amp;utm_loc_interest_ms=&amp;utm_loc_physical_ms=1000149&amp;gclid=Cj0KCQjwtZH7BRDzARIsAGjbK2YH3kiq7Fy3bc9cS001_3hbuutZ_e00QOKK2pYwJLHuzjMKAWC96oEaAhpQEALw_wcB" class="uri">https://www.datacamp.com/community/tutorials/installing-R-windows-mac-ubuntu?utm_source=adwords_ppc&amp;utm_campaignid=898687156&amp;utm_adgroupid=48947256715&amp;utm_device=c&amp;utm_keyword=&amp;utm_matchtype=b&amp;utm_network=g&amp;utm_adpostion=&amp;utm_creative=229765585183&amp;utm_targetid=dsa-429603003980&amp;utm_loc_interest_ms=&amp;utm_loc_physical_ms=1000149&amp;gclid=Cj0KCQjwtZH7BRDzARIsAGjbK2YH3kiq7Fy3bc9cS001_3hbuutZ_e00QOKK2pYwJLHuzjMKAWC96oEaAhpQEALw_wcB</a></p>
+<p><img src="img/PBI_OPTIONS_2.png" /><!-- --></p>
+<p>Under visualisations you should now see the R icon.</p>
+<p><img src="img/PBI_OPTIONS_3.png" width="50%" /></p>
+<p>Once the R icon is selected we can start dragging fields from our data set.</p>
+<p><img src="img/PBI_OPTIONS_4.png" width="100%" /></p>
+<p>Note we now have an R script editor window. We can optionally type our code into.
+Observe the uneditable code put in by PowerBI to remove duplicate rows.
+This can cause issues if you don’t have an index column for obvious reasons.</p>
+<p><img src="img/PBI_OPTIONS_5.png" /><!-- --></p>
+<p>Make sure your index column is set to not summarise. This will prevent PowerBI from summing it in the data set.</p>
+<p><img src="img/PBI_OPTIONS_5.1.png" width="50%" /></p>
+<p>I would highly recommend writing your code in R Studio by the selecting edit script in external IDE.</p>
+<p><img src="img/PBI_OPTIONS_6.png" width="100%" /></p>
+<p>PowerBI creates an REditorWrapper script with the data set ready to load.
+You can now write your code and take avantage of the benefits of writing in an IDE.</p>
+<p><img src="img/PBI_OPTIONS_7.png" width="100%" /></p>
+<p>Once Finished and tested in RStudio, paste your code back into PowerBI and run</p>
+<p><img src="img/PBI_OPTIONS_8.png" width="100%" /></p>
+</div>
+</div>

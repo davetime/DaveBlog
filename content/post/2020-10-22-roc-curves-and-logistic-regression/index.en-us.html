@@ -1,0 +1,209 @@
+---
+title: ROC curves and Logistic Regression
+author: David Timewell
+date: '2020-10-22'
+slug: index.en-us
+categories:
+  - R
+tags:
+  - logistic regression
+  - ROC curve
+keywords:
+  - tech
+thumbnailImage: "img/curve.jpg"
+thumbnailImagePosition: left
+---
+
+<link href="/rmarkdown-libs/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/anchor-sections/anchor-sections.js"></script>
+
+
+<p>On a recent project using logistic regression whilst testing my model accuracy, adjusting the classification threshold and creating many confusion matrices. I later found that using a ROC curve was a better approach to finding the optimal threshold.</p>
+<!--more-->
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>On a recent project using logistic regression whilst testing my model accuracy, adjusting the classification threshold and creating many confusion matrices. I later found that using a ROC curve was a better approach to finding the optimal threshold.</p>
+<pre class="r"><code>library(caTools)
+library(caret)</code></pre>
+<pre><code>## Loading required package: lattice</code></pre>
+<pre><code>## Loading required package: ggplot2</code></pre>
+<pre class="r"><code>library(readr)
+library(tidyverse)</code></pre>
+<pre><code>## -- Attaching packages --------------------------------------- tidyverse 1.3.0 --</code></pre>
+<pre><code>## v tibble  3.0.4     v dplyr   1.0.2
+## v tidyr   1.1.2     v stringr 1.4.0
+## v purrr   0.3.4     v forcats 0.5.0</code></pre>
+<pre><code>## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()
+## x purrr::lift()   masks caret::lift()</code></pre>
+<pre class="r"><code>library(ROCR)
+
+
+set.seed(42)</code></pre>
+</div>
+<div id="the-roc-curve" class="section level2">
+<h2>The ROC curve</h2>
+<p>THe ROC curve (reciever operating characteristic curve)</p>
+<p><img src="img/RocCurve.png" width="50%" /></p>
+<p>The ROC curve plots the true positive rate (the predictions our model got correct) versus the false positive rate (the predictions our model got incorrect)
+From the diagram we see the horizontal line which is no better than random guessing. The area under horizontal line is .5. Our ideal model would be at the red dot where our
+true positive rate (TPR) is 1 and our area under the curve is 1. Here we would have 100 % true positive and zero false positive.</p>
+</div>
+<div id="get-data" class="section level2">
+<h2>Get data</h2>
+<p>First up I will load up some sample data. For this I am using the Cleveland heart disease data set.
+For more info : <a href="https://archive.ics.uci.edu/ml/datasets/heart+disease" class="uri">https://archive.ics.uci.edu/ml/datasets/heart+disease</a></p>
+<p>I want to change the class to a binary outcome. So 1 has heart disease and 0 does not. I will also change the sex field and convert over to factors.</p>
+<pre class="r"><code>hd_data %&gt;% mutate(hd = ifelse(class &gt; 0, 1, 0))-&gt; hd_data
+hd_data %&gt;% mutate(sex = ifelse(sex == 0, &quot;F&quot;, &quot;M&quot;))-&gt; hd_data
+hd_data$hd &lt;- factor(hd_data$hd )
+hd_data$sex &lt;- factor(hd_data$sex )</code></pre>
+<p>Now we can glimpse the data just to orientate ourselves. Note we have 303 observations.</p>
+<pre class="r"><code>glimpse(hd_data)</code></pre>
+<pre><code>## Rows: 303
+## Columns: 15
+## $ age      &lt;int&gt; 63, 67, 67, 37, 41, 56, 62, 57, 63, 53, 57, 56, 56, 44, 52...
+## $ sex      &lt;fct&gt; M, M, M, M, F, M, F, F, M, M, M, F, M, M, M, M, M, M, F, M...
+## $ cp       &lt;int&gt; 1, 4, 4, 3, 2, 2, 4, 4, 4, 4, 4, 2, 3, 2, 3, 3, 2, 4, 3, 2...
+## $ trestbps &lt;int&gt; 145, 160, 120, 130, 130, 120, 140, 120, 130, 140, 140, 140...
+## $ chol     &lt;int&gt; 233, 286, 229, 250, 204, 236, 268, 354, 254, 203, 192, 294...
+## $ fbs      &lt;int&gt; 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0...
+## $ restecg  &lt;int&gt; 2, 2, 2, 0, 2, 0, 2, 0, 2, 2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0...
+## $ thalach  &lt;int&gt; 150, 108, 129, 187, 172, 178, 160, 163, 147, 155, 148, 153...
+## $ exang    &lt;int&gt; 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0...
+## $ oldpeak  &lt;dbl&gt; 2.3, 1.5, 2.6, 3.5, 1.4, 0.8, 3.6, 0.6, 1.4, 3.1, 0.4, 1.3...
+## $ slope    &lt;int&gt; 3, 2, 2, 3, 1, 1, 3, 1, 2, 3, 2, 2, 2, 1, 1, 1, 3, 1, 1, 1...
+## $ ca       &lt;int&gt; 0, 3, 2, 0, 0, 0, 2, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0...
+## $ thal     &lt;int&gt; 6, 3, 7, 3, 3, 3, 3, 3, 7, 7, 6, 3, 6, 7, 7, 3, 7, 3, 3, 3...
+## $ class    &lt;int&gt; 0, 2, 1, 0, 0, 0, 3, 0, 2, 1, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0...
+## $ hd       &lt;fct&gt; 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0...</code></pre>
+<p>Next we shuffle our data to avoid any bias that may be in the data set as a result of the default ordering. We then split our data into test and training set using a 70:30 split.</p>
+<pre class="r"><code># Get the number of observations
+n_obs &lt;- nrow(hd_data)
+
+# Shuffle row indices: permuted_rows
+permuted_rows &lt;- sample(n_obs)
+
+# Randomly order data: Sonar
+model_shuffled &lt;- hd_data[permuted_rows, ]
+
+# Identify row to split on: split
+split &lt;- round(n_obs * 0.7)
+
+# Create train
+train &lt;- model_shuffled[1:split, ]
+
+# Create test
+test &lt;- model_shuffled[(split + 1):n_obs, ]</code></pre>
+</div>
+<div id="build-a-logistic-regression-model" class="section level2">
+<h2>Build a logistic regression model</h2>
+<p>Now we build our logistic regression model to see if we can predict heart disease using our predictors.
+Note for this example I have only used two predictors. To test the if there is a significant relationship between the predictors and response variable (hd)
+you can use Chi squared test to calculate p-values. I won’t go into this here.</p>
+<pre class="r"><code>glm_model &lt;- glm(data = train, hd ~ age + sex + thalach, family = &quot;binomial&quot; )
+
+summary(glm_model)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = hd ~ age + sex + thalach, family = &quot;binomial&quot;, 
+##     data = train)
+## 
+## Deviance Residuals: 
+##      Min        1Q    Median        3Q       Max  
+## -1.94637  -0.84293  -0.04118   0.86104   2.09577  
+## 
+## Coefficients:
+##              Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  4.016742   1.880857   2.136   0.0327 *  
+## age          0.026756   0.019105   1.400   0.1614    
+## sexM         1.605177   0.362115   4.433 9.30e-06 ***
+## thalach     -0.043793   0.008484  -5.162 2.44e-07 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 293.89  on 211  degrees of freedom
+## Residual deviance: 226.25  on 208  degrees of freedom
+## AIC: 234.25
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+</div>
+<div id="test-the-model-and-create-a-confusion-matrix-and-roc-curve" class="section level2">
+<h2>Test the model and create a confusion matrix and ROC curve</h2>
+<p>Now lets test our model against the test set and create a confusion matrix. Note a cassification threshold of .5 is set initially.</p>
+<pre class="r"><code># Predict on test
+p &lt;- predict(glm_model, test, type = &quot;response&quot;)
+
+
+
+# If p exceeds threshold of 0.5, 1 else 0
+hd_or_nohd &lt;- ifelse(p &gt; 0.5, 1, 0)
+
+# Convert to factor: p_class
+p_class &lt;- factor(hd_or_nohd, levels = levels(test[[&quot;hd&quot;]]))
+
+
+# Create confusion matrix
+confusionMatrix(p_class, test[[&quot;hd&quot;]])</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  0  1
+##          0 36 10
+##          1 22 23
+##                                           
+##                Accuracy : 0.6484          
+##                  95% CI : (0.5412, 0.7456)
+##     No Information Rate : 0.6374          
+##     P-Value [Acc &gt; NIR] : 0.46057         
+##                                           
+##                   Kappa : 0.2946          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 0.05183         
+##                                           
+##             Sensitivity : 0.6207          
+##             Specificity : 0.6970          
+##          Pos Pred Value : 0.7826          
+##          Neg Pred Value : 0.5111          
+##              Prevalence : 0.6374          
+##          Detection Rate : 0.3956          
+##    Detection Prevalence : 0.5055          
+##       Balanced Accuracy : 0.6588          
+##                                           
+##        &#39;Positive&#39; Class : 0               
+## </code></pre>
+<p>Below gives an idea of how the matrix is structured (<a href="https://en.wikipedia.org/wiki/Confusion_matrix" class="uri">https://en.wikipedia.org/wiki/Confusion_matrix</a>)</p>
+<p><img src="img/confusion_matrix.png" width="100%" /></p>
+<p>So from looking at the above and our subsequent confusion matrix we have :</p>
+<ul>
+<li><p>Accuracy of 64% being our TP / (TP + FP)</p></li>
+<li><p>Sensitivity of 62% being our TP / P</p></li>
+<li><p>Specificity of 69% being our TN / N</p></li>
+</ul>
+<p>We could then go on to create many confusion matrices as we adjust the classification threshold and compare to others we created.
+This is not ideal.</p>
+<p>Now let’s plot a ROC curve</p>
+<pre class="r"><code>roc_pred &lt;- prediction(predictions = p  , labels = test$hd)
+roc_perf &lt;- performance(roc_pred , &quot;tpr&quot; , &quot;fpr&quot;)
+plot(roc_perf,
+     colorize = TRUE,
+     print.cutoffs.at= seq(0,1,0.05),
+     text.adj=c(-0.2,1.7))</code></pre>
+<p><img src="/post/2020-10-22-roc-curves-and-logistic-regression/index.en-us_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>The x axis is the false positive rate and the y axis is the true positive rate. We can see each of the points represents a confusion matrix (like we created above) which we don’t have to evaluate manually. The points represent the tradeoff between true positive and false positive.
+By looking at the graph we can choose the optimal threshold depending on how many false positives(FP) we are willing to accept.</p>
+<p>AUC</p>
+<p>We can also calculate the area under the ROC curve.
+If we look at the area under the curve a perfect model would give an AUC of exactly 1.00 and the average AUC for a random model is .5 (no better than random guessing) as the plot represents a diagonal line.
+AUC is a single number summary that allows us to evaluate the model accuracy without looking at confusion matrices. Typically we want a model with .8 or higher.
+We can also use this to compare AUC against other models.</p>
+<pre class="r"><code> (auc_ROCR &lt;- performance(roc_pred, measure = &quot;auc&quot;))</code></pre>
+<pre><code>## A performance instance
+##   &#39;Area under the ROC curve&#39;</code></pre>
+<pre class="r"><code> (auc_ROCR &lt;- auc_ROCR@y.values[[1]])</code></pre>
+<pre><code>## [1] 0.7583595</code></pre>
+<p>From here one way to improve our model woul be to include aditional revelant predictors.</p>
+</div>
